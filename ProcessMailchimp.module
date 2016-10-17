@@ -26,8 +26,8 @@ class ProcessMailchimp extends Process {
 
     public function execute() {
 
-        $api = "c789911644325c93471d93772836d819-us14";
-        $list_id = "a8d9815697";
+        $api = "******************************-us14";
+        $list_id = "**********";
 
         $MailChimp = new MailChimp($api);
         $result = $MailChimp->post("lists/$list_id/members", [
