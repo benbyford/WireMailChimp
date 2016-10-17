@@ -8,7 +8,7 @@
 * @see http://www.processwire.com
 */
 
-class ProcessMailchimp extends Process {
+class PWmailchimp extends WireData implements Module {
 
     public static function getModuleInfo() {
         return array(
@@ -20,14 +20,25 @@ class ProcessMailchimp extends Process {
             'autoload' => true,
         );
     }
+
+    private $apiKey;
+    private $apiList;
+
+
     public function init() {
+        $this->apiKey = $this->api_key;
+        $this->apiList = $this->api_list;
+
+        $log = wire('log');
+        $log->message($this->apiList);
+
 		$this->addHookAfter('Subscribers::register', $this, 'userSaved');
 	}
 
     public function execute() {
 
-        $api = "******************************-us14";
-        $list_id = "**********";
+        $api = "c789911644325c93471d93772836d819-us14";
+        $list_id = "a8d9815697";
 
         $MailChimp = new MailChimp($api);
         $result = $MailChimp->post("lists/$list_id/members", [
@@ -39,30 +50,12 @@ class ProcessMailchimp extends Process {
     }
 
     public function userSaved($e){
-        $userName = $e->userName;
-        $userEmail = $e->userEmail;
-        $log = wire('log');
-        $log->message($name ." : ". $userEmail);
-    }
+        $userName = $e->object->getName();
 
 
-    public function ___install(){
 
-        $p = new Page();
-        $p->template = $this->templates->get("admin");
-        $p->parent = $this->pages->get("template=admin, name=setup");
-        $p->title = "MailChimp";
-        $p->name  = __CLASS__;
-        $p->process = $this;
-        $p->save();
-    }
-
-    public function ___uninstall()
-    {
-        $p = $this->pages->get('template=admin, name=' . __CLASS__);
-        if ($p->id > 0) {
-            $p->delete();
-        }
+        // $log = wire('log');
+        // $log->message("Name : ". $userName);
     }
 }
 
