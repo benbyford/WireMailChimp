@@ -1,6 +1,6 @@
 <?php
 
-class PWmailchimpConfig extends ModuleConfig {
+class WireMailChimpConfig extends ModuleConfig {
 
 	/*
 	* Admin settings

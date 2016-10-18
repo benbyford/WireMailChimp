@@ -8,14 +8,14 @@
 * @see http://www.processwire.com
 */
 
-class PWmailchimp extends WireData implements Module {
+class WireMailChimp extends WireData implements Module {
 
     public static function getModuleInfo() {
         return array(
-            'title' => 'Process Mailchimp',
+            'title' => 'WireMailChimp',
             'summary' => 'Subscriptions to mailchimp lists',
             'version' => 001,
-            'icon' => 'email',
+            'icon' => 'envelope',
             'href' => "https://github.com/benbyford/",
             'autoload' => true,
         );
@@ -24,38 +24,58 @@ class PWmailchimp extends WireData implements Module {
     private $apiKey;
     private $apiList;
 
-
     public function init() {
         $this->apiKey = $this->api_key;
         $this->apiList = $this->api_list;
 
-        $log = wire('log');
-        $log->message($this->apiList);
-
-		$this->addHookAfter('Subscribers::register', $this, 'userSaved');
+        // add page save hook if api details provided
+        if($this->apiList && $this->apiKey){
+            $this->addHookAfter('Pages::saved', $this, 'pageSave');
+        }
 	}
 
-    public function execute() {
+    // sign up user that has opted in after login
+    public function pageSave($e){
 
-        $api = "c789911644325c93471d93772836d819-us14";
-        $list_id = "a8d9815697";
+        // page saved
+        $page = $e->arguments(0);
 
-        $MailChimp = new MailChimp($api);
-        $result = $MailChimp->post("lists/$list_id/members", [
-            'email_address' => 'benjaminbyford@gmail.com',
-            'status'        => 'subscribed',
-        ]);
+        // if new user has opted-in to subscription then sign them up
+        if($page->template == "user" && $page->email_subscribe){
 
-        return implode(" ",$result);
-    }
+            $roleFound = false;
 
-    public function userSaved($e){
-        $userName = $e->object->getName();
+            if(count($page->roles)){
+                foreach($page->roles as $role){
+                    if($role->name == "subscriber"){
+                        $roleFound = true;
+                        break;
+                    }
+                }
+            }
 
+            if($roleFound){
 
+                // mailchimp API
+                $api = $this->apiKey;
+                $list_id = $this->apiList;
 
-        // $log = wire('log');
-        // $log->message("Name : ". $userName);
+                // create mailchimp requrest
+                $MailChimp = new MailChimp($api);
+                $result = $MailChimp->post("lists/$list_id/members", [
+                    'email_address' => $page->email,
+                    'status'        => 'subscribed',
+                ]);
+
+                // log success of failure
+                $log = wire('log');
+                if ($MailChimp->success()) {
+                    $log->message("User: ". $page->email . " subscribered to Mailchimp");
+                } else {
+                    $log->error($MailChimp->getLastError());
+                }
+            }
+        }
     }
 }
 
