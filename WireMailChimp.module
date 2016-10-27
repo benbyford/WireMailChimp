@@ -40,32 +40,51 @@ class WireMailChimp extends WireData implements Module {
         // page saved
         $page = $e->arguments(0);
 
-        // if new user has opted-in to subscription then sign them up
-        if($page->template == "user" && $page->email_subscribe){
+        // if new user has opted-in to subscription and email available then sign them up
+        if($page->template == "user" && $page->email != ""){
+
+            // check for user role "subscriber" or Subscriber module role set in admin
+            $SubscriberModule = $this->modules->getModule("Subscriber");
+            $roleName = "subscriber";
+            if($SubscriberModule) $roleName = $SubscriberModule->getRole();
 
             $roleFound = false;
-
             if(count($page->roles)){
                 foreach($page->roles as $role){
-                    if($role->name == "subscriber"){
+                    if($role->name == $roleName){
                         $roleFound = true;
                         break;
                     }
                 }
             }
 
+            // user has required subscriber role
             if($roleFound){
 
                 // mailchimp API
                 $api = $this->apiKey;
                 $list_id = $this->apiList;
-
-                // create mailchimp requrest
                 $MailChimp = new MailChimp($api);
-                $result = $MailChimp->post("lists/$list_id/members", [
-                    'email_address' => $page->email,
-                    'status'        => 'subscribed',
-                ]);
+
+                // user has opted in to emails
+                if($page->email_subscribe){
+
+                    // create mailchimp request to subscriber user email
+                    $result = $MailChimp->post("lists/$list_id/members", [
+                        'email_address' => $page->email,
+                        'status'        => 'subscribed',
+                    ]);
+
+                // user may have opted out of emails
+                }else{
+
+                    // create mailchimp request to unsubscriber user email
+                    $result = $MailChimp->post("lists/$list_id/members", [
+                        'email_address' => $page->email,
+                        'status'        => 'unsubscribe',
+                    ]);
+
+                }
 
                 // log success of failure
                 $log = wire('log');
